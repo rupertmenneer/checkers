@@ -1,9 +1,13 @@
 package Checkers_game;
 
 import javafx.scene.Cursor;
+import javafx.scene.Group;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+
+import java.util.ArrayList;
 
 public class Piece extends StackPane {
 
@@ -12,6 +16,7 @@ public class Piece extends StackPane {
         private Piece_player player;
         private MoveManager availableMoves;
         private double scale = 0.366;
+
 
         public MoveManager getAvailableMoves() {
             return availableMoves;
@@ -31,6 +36,12 @@ public class Piece extends StackPane {
 
         public Color getColor(){
             if(player == Piece_player.Human){ return Color.INDIANRED; } else { return Color.CORNFLOWERBLUE; }
+        }
+
+        public Piece(Piece copy){
+            this.player = copy.getPlayer();
+            this.board_x = copy.getBoardX();
+            this.board_y = copy.getBoardY();
         }
 
         public Piece(Piece_player player, int x, int y){
@@ -91,4 +102,5 @@ public class Piece extends StackPane {
         public void setBoardY(int y){
             this.board_y = y;
         }
+
 }

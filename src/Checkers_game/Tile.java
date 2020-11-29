@@ -9,10 +9,10 @@ public class Tile extends Rectangle {
 
     private Piece piece;
     // wood texture 1
-    private static final File wood_1_path = new File("/Users/rm594/Documents/wood1.png");
+    private static final File wood_1_path = new File("/Users/rm594/Documents/Checkers_images/wood1.png");
     Image wood_1 = new Image(wood_1_path.toURI().toString());
     // wood texture 2
-    private static final File wood_2_path = new File("/Users/rm594/Documents/wood2.png");
+    private static final File wood_2_path = new File("/Users/rm594/Documents/Checkers_images/wood2.png");
     Image wood_2 = new Image(wood_2_path.toURI().toString());
 
     public boolean has_piece() {

@@ -5,12 +5,12 @@ import java.util.Collections;
 
 public class MoveManager {
 
-    private Checkers game;
+    private Tile[][] board;
     private Piece p;
     private ArrayList<Move> valid_moves;
 
-    public MoveManager(Checkers game, Piece p){
-        this.game = game;
+    public MoveManager(Tile[][] board, Piece p){
+        this.board = board;
         this.p = p;
         this.valid_moves = findValidMoves(p.getBoardX(), p.getBoardY(), null);
     }
@@ -22,20 +22,20 @@ public class MoveManager {
         // skip non capturing moves if piece has already captured
         if(taken == null) {
             // check non capture left (+ move within board)
-            if (withinBoundary(x-1, y+d) && !game.getBoard()[x - 1][y + d].has_piece()) {
-                move_list.add(new Move(x - 1, y + d));
+            if (withinBoundary(x-1, y+d) && !board[x - 1][y + d].has_piece()) {
+                move_list.add(new Move(p,x - 1, y + d, x, y));
             }
             // check non capture right (+ move within board)
-            if (withinBoundary(x+1, y+d) && !game.getBoard()[x + 1][y + d].has_piece()) {
-                move_list.add(new Move(x + 1, y + d));
+            if (withinBoundary(x+1, y+d) && !board[x + 1][y + d].has_piece()) {
+                move_list.add(new Move(p,x + 1, y + d, x, y));
             }
         }
         // check if there is a valid capture move left (enemy diagonal AND free space in line afterwards)
         if(captureCheck(x, y, 1, d)){
             // if capture is valid, add move and check if any more valid captures from new position
-            Move m = new Move(x + 2, y + (2*d));
+            Move m = new Move(p,x + 2, y + (2*d), x, y);
             // add captured piece to move's pieces taken
-            Piece taken_piece = game.getBoard()[x+1][y+d].getPiece();
+            Piece taken_piece = board[x+1][y+d].getPiece();
             if(taken != null){
                 m.pieceTaken(taken);
             }
@@ -46,9 +46,9 @@ public class MoveManager {
         // check if there is a valid capture move right (enemy diagonal AND free space in line afterwards)
         if(captureCheck(x, y, -1, d)){
             // if capture is valid, add move and check if any more valid captures from new position
-            Move m = new Move(x - 2, y + (2*d));
+            Move m = new Move(p,x - 2, y + (2*d), x, y);
             // add captured piece to move's pieces taken
-            Piece taken_piece = game.getBoard()[x-1][y+d].getPiece();
+            Piece taken_piece = board[x-1][y+d].getPiece();
             if(taken != null){
                 m.pieceTaken(taken);
             }
@@ -60,15 +60,15 @@ public class MoveManager {
         return move_list;
     }
 
-    public ArrayList<Move> getValid_moves() {
+    public ArrayList<Move> getValidMoves() {
         return valid_moves;
     }
 
-    public void printValidMoves(){
-        for (Move valid_move : valid_moves) {
-            System.out.println("Valid move found at: " + valid_move.getX() + " " + valid_move.getY());
-        }
-    }
+//    public void printValidMoves(){
+//        for (Move valid_move : valid_moves) {
+//            System.out.println("Valid move found at: " + valid_move.getX() + " " + valid_move.getY() + " for Piece at " + p.getBoardY() + p.getBoardY());
+//        }
+//    }
 
     private boolean withinBoundary(int x, int y){
         return x >= 0 && x <= 7 && y >= 0 && y <= 7;
@@ -80,9 +80,9 @@ public class MoveManager {
             return false;
         }
         // capture check
-        return game.getBoard()[x+side_dir][y+piece_dir].has_piece() &&
-                game.getBoard()[x+side_dir][y+piece_dir].getPiece().getPlayer() != p.getPlayer() &&
-                !(game.getBoard()[x+(2*side_dir)][y+(2*piece_dir)].has_piece());
+        return board[x+side_dir][y+piece_dir].has_piece() &&
+                board[x+side_dir][y+piece_dir].getPiece().getPlayer() != p.getPlayer() &&
+                !(board[x+(2*side_dir)][y+(2*piece_dir)].has_piece());
     }
 
     // iterate through valid moves list, if passed in move is equal (x1=x2, y1=y2) return true, otherwise false

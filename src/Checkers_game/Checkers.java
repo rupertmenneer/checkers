@@ -26,6 +26,7 @@ public class Checkers extends Application {
 
     private final Group tiles = new Group();
     private final Group pieces = new Group();
+    private Group display_available_moves = new Group();
     private final Tile[][] board = new Tile[grid_size][grid_size];
 
     private Pane generateBoard(){
@@ -57,7 +58,7 @@ public class Checkers extends Application {
         }
 
         tiles.setVisible(true);
-        root.getChildren().addAll(tiles,pieces);
+        root.getChildren().addAll(tiles,display_available_moves,pieces);
         return root;
     }
 
@@ -68,8 +69,9 @@ public class Checkers extends Application {
         // handle selecting a piece
         p.setOnMousePressed(e-> {
             p.setCursor(Cursor.CLOSED_HAND);
-            p.setAvailableMoves(new MoveManager(this, p));
-            p.getAvailableMoves().printValidMoves();
+            p.setAvailableMoves(new MoveManager(board, p));
+//            p.getAvailableMoves().printValidMoves();
+            showValidMoves(p);
         });
         // handle piece being moved
         p.setOnMouseReleased(e->{
@@ -77,37 +79,69 @@ public class Checkers extends Application {
             // snap to grid space
             int new_x = roundToTile(p.getLayoutX())/tile_size;
             int new_y = roundToTile(p.getLayoutY())/tile_size;
-            Move attempted_move = new Move(new_x, new_y);
+            Move attempted_move = new Move(p, new_x, new_y, p.getBoardX(), p.getBoardY());
             // if not your turn or not valid move
-            if(p.getAvailableMoves().getMove(attempted_move) == null |
-                    (p.getPlayer() == Piece_player.Human && !turn) |
-                    (p.getPlayer() == Piece_player.AI && turn)){
+            if(turn && p.getPlayer() == Piece_player.AI){
+                // move piece back to previous position
+                System.out.println("it's not your turn");
+                p.movePiece(p.getBoardX(), p.getBoardY());
+                p.clearAvailableMoves();
+            }
+            else if(p.getAvailableMoves().getMove(attempted_move) == null) {
                 // move piece back to previous position
                 p.movePiece(p.getBoardX(), p.getBoardY());
                 p.clearAvailableMoves();
             }
             else {
                 // if pieces were taken, remove them and set board ref to null
-                ArrayList<Piece > taken_pieces = p.getAvailableMoves().getMove(attempted_move).getPiecesTaken();
-                for (Piece taken_piece : taken_pieces) {
-                    board[taken_piece.getBoardX()][taken_piece.getBoardY()].setPiece(null);
-                    pieces.getChildren().remove(taken_piece);
-                }
-                // change turn
-                turn = !turn;
-                // set old board ref to null
-                board[p.getBoardX()][p.getBoardY()].setPiece(null);
-                p.clearAvailableMoves();
-                // update new board ref
-                board[new_x][new_y].setPiece(p);
-                // update piece's ref to board position
-                p.setBoardX(new_x);
-                p.setBoardY(new_y);
-                // move piece to new valid move
-                p.movePiece(new_x, new_y);
+                makeMove(attempted_move);
+                Play();
             }
+            display_available_moves.getChildren().clear();
         });
         return p;
+    }
+
+    private void showValidMoves(Piece p){
+        ArrayList<Move> available_moves = p.getAvailableMoves().getValidMoves();
+        for(int i = 0; i<available_moves.size(); i++){
+            Rectangle move = new Rectangle(Checkers.tile_size, Checkers.tile_size);
+            move.setVisible(true);
+            move.setDisable(true);
+            move.setFill(Color.GREEN);
+            move.setOpacity(0.2);
+            move.setTranslateX(available_moves.get(i).getX()*Checkers.tile_size);
+            move.setTranslateY(available_moves.get(i).getY()*Checkers.tile_size);
+            display_available_moves.getChildren().add(move);
+        }
+    }
+
+
+    private void makeMove(Move m){
+        // get piece and new x and y co-ords
+        Piece p = m.getPiece();
+        int new_x = m.getX();
+        int new_y = m.getY();
+        // are any pieces taken in this move? if so remove them
+        ArrayList<Piece > taken_pieces = p.getAvailableMoves().getMove(m).getPiecesTaken();
+        for (Piece taken_piece : taken_pieces) {
+            board[taken_piece.getBoardX()][taken_piece.getBoardY()].setPiece(null);
+            pieces.getChildren().remove(taken_piece);
+        }
+        // set old board ref to null
+        board[p.getBoardX()][p.getBoardY()].setPiece(null);
+        p.clearAvailableMoves();
+        // update new board ref
+        board[new_x][new_y].setPiece(p);
+        // update piece's ref to board position
+        p.setBoardX(new_x);
+        p.setBoardY(new_y);
+        // move piece to new valid move
+        p.movePiece(new_x, new_y);
+        // change turn
+        turn = !turn;
+
+        System.out.println("Board position " + new_x + " " + new_y + " has piece " + board[new_x][new_y].has_piece());
     }
 
     private int roundToTile(double i){
@@ -137,6 +171,19 @@ public class Checkers extends Application {
         menuBar.getMenus().addAll(menu1, menu2);
         return menuBar;
     }
+
+    private void Play(){
+        if (!turn && !gameOver()){
+            OpponentAI AI = new OpponentAI(board, 8);
+            makeMove(AI.getBestMove());
+            System.out.println("AI makes move from: " + AI.getBestMove().getOldX() + " " + AI.getBestMove().getOldY() + " to: " + AI.getBestMove().getX() + " " +  AI.getBestMove().getY());
+        }
+    }
+
+    private boolean gameOver(){
+        return pieces.getChildren().isEmpty();
+    }
+
 
     @Override
     public void start(Stage primaryStage) {
