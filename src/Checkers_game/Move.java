@@ -43,4 +43,8 @@ public class Move {
     public Piece getPiece() {
         return piece;
     }
+
+    public void printMove(){
+        System.out.println("This move - from old X " + old_x + " old Y " + old_y + " to new X  " + x + " new Y " + y + " takes this many pieces: " + piecesTaken.size());
+    }
 }

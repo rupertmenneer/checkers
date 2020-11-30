@@ -12,7 +12,7 @@ public class MoveManager {
     public MoveManager(Tile[][] board, Piece p){
         this.board = board;
         this.p = p;
-        this.valid_moves = findValidMoves(p.getBoardX(), p.getBoardY(), null);
+        this.valid_moves = new ArrayList<>();
     }
 
     private ArrayList<Move> findValidMoves(int x, int y, Piece taken){
@@ -61,6 +61,8 @@ public class MoveManager {
     }
 
     public ArrayList<Move> getValidMoves() {
+        this.valid_moves.clear();
+        this.valid_moves = findValidMoves(p.getBoardX(), p.getBoardY(), null);
         return valid_moves;
     }
 

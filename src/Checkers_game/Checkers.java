@@ -1,5 +1,6 @@
 package Checkers_game;
 
+import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
@@ -14,49 +15,58 @@ import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.paint.Color;
+import javafx.util.Duration;
 
 import java.awt.*;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class Checkers extends Application {
 
     public final static int tile_size = 72;
     public final static int grid_size = 8;
-    public static boolean turn = true;
+    public static Piece_player turn = Piece_player.Human;
 
     private final Group tiles = new Group();
     private final Group pieces = new Group();
     private Group display_available_moves = new Group();
+    private final ArrayList<Piece> human_pieces = new ArrayList<>();
+    private final ArrayList<Piece> ai_pieces = new ArrayList<>();
     private final Tile[][] board = new Tile[grid_size][grid_size];
 
     private Pane generateBoard(){
         Pane root = new Pane();
         root.setPrefSize(grid_size*tile_size, grid_size*tile_size);
 
-        for(int x = 0; x < grid_size; x++){
-            for(int y = 0; y < grid_size; y++){
-                Tile tile = new Tile((x+y)%2 == 0,x ,y);
+        for(int x = 0; x < grid_size; x++) {
+            for (int y = 0; y < grid_size; y++) {
+                Tile tile = new Tile((x + y) % 2 == 0, x, y);
                 tile.setVisible(true);
                 tiles.getChildren().add(tile);
                 board[x][y] = tile;
                 // generate pieces
-                if ((x+y)%2==0){
-                    if(y<=2){
-                        // for AI
-                        Piece p_ai = generatePiece(Piece_player.AI, x, y);
-                        board[x][y].setPiece(p_ai);
-                        pieces.getChildren().add(p_ai);
-                    }
-                    else if (y>= grid_size - 3){
-                        // for human
-                        Piece p_h = generatePiece(Piece_player.Human, x, y);
-                        board[x][y].setPiece(p_h);
-                        pieces.getChildren().add(p_h);
+            }
+        }
+            for(int x = 0; x < grid_size; x++){
+                for(int y = 0; y < grid_size; y++) {
+                    if ((x + y) % 2 == 0) {
+                        if (y <= 2) {
+                            // for AI
+                            Piece p_ai = generatePiece(Piece_player.AI, x, y);
+                            board[x][y].setPiece(p_ai);
+                            p_ai.setDisable(true);
+                            ai_pieces.add(p_ai);
+                            pieces.getChildren().add(p_ai);
+                        } else if (y >= grid_size - 3) {
+                            // for human
+                            Piece p_h = generatePiece(Piece_player.Human, x, y);
+                            board[x][y].setPiece(p_h);
+                            human_pieces.add(p_h);
+                            pieces.getChildren().add(p_h);
+                        }
                     }
                 }
             }
-        }
-
         tiles.setVisible(true);
         root.getChildren().addAll(tiles,display_available_moves,pieces);
         return root;
@@ -64,13 +74,12 @@ public class Checkers extends Application {
 
 
     private Piece generatePiece(Piece_player player, int x, int y){
-        Piece p = new Piece(player, x, y);
+        Piece p = new Piece(player, x, y, board);
 
         // handle selecting a piece
         p.setOnMousePressed(e-> {
             p.setCursor(Cursor.CLOSED_HAND);
-            p.setAvailableMoves(new MoveManager(board, p));
-//            p.getAvailableMoves().printValidMoves();
+            System.out.println("Piece pos " + p.getBoardX() + " " + p.getBoardY());
             showValidMoves(p);
         });
         // handle piece being moved
@@ -80,22 +89,13 @@ public class Checkers extends Application {
             int new_x = roundToTile(p.getLayoutX())/tile_size;
             int new_y = roundToTile(p.getLayoutY())/tile_size;
             Move attempted_move = new Move(p, new_x, new_y, p.getBoardX(), p.getBoardY());
-            // if not your turn or not valid move
-            if(turn && p.getPlayer() == Piece_player.AI){
-                // move piece back to previous position
-                System.out.println("it's not your turn");
+           if(p.getMoveManager().getMove(attempted_move) == null) {
+                // if attempted move was not valid move piece back to previous position
                 p.movePiece(p.getBoardX(), p.getBoardY());
-                p.clearAvailableMoves();
-            }
-            else if(p.getAvailableMoves().getMove(attempted_move) == null) {
-                // move piece back to previous position
-                p.movePiece(p.getBoardX(), p.getBoardY());
-                p.clearAvailableMoves();
             }
             else {
-                // if pieces were taken, remove them and set board ref to null
-                makeMove(attempted_move);
-                Play();
+                // make move with Move from Move Manager if it was a valid attempt
+                makeMove(p.getMoveManager().getMove(attempted_move));
             }
             display_available_moves.getChildren().clear();
         });
@@ -103,7 +103,7 @@ public class Checkers extends Application {
     }
 
     private void showValidMoves(Piece p){
-        ArrayList<Move> available_moves = p.getAvailableMoves().getValidMoves();
+        ArrayList<Move> available_moves = p.getMoveManager().getValidMoves();
         for(int i = 0; i<available_moves.size(); i++){
             Rectangle move = new Rectangle(Checkers.tile_size, Checkers.tile_size);
             move.setVisible(true);
@@ -123,25 +123,31 @@ public class Checkers extends Application {
         int new_x = m.getX();
         int new_y = m.getY();
         // are any pieces taken in this move? if so remove them
-        ArrayList<Piece > taken_pieces = p.getAvailableMoves().getMove(m).getPiecesTaken();
+        ArrayList<Piece > taken_pieces = m.getPiecesTaken();
+        System.out.println("Number of pieces taken: " + taken_pieces.size());
         for (Piece taken_piece : taken_pieces) {
             board[taken_piece.getBoardX()][taken_piece.getBoardY()].setPiece(null);
             pieces.getChildren().remove(taken_piece);
+            System.out.println("Piece taken");
         }
         // set old board ref to null
         board[p.getBoardX()][p.getBoardY()].setPiece(null);
-        p.clearAvailableMoves();
         // update new board ref
         board[new_x][new_y].setPiece(p);
-        // update piece's ref to board position
-        p.setBoardX(new_x);
-        p.setBoardY(new_y);
-        // move piece to new valid move
-        p.movePiece(new_x, new_y);
-        // change turn
-        turn = !turn;
+        // animate piece
+        p.animatePiece(this, new_x, new_y);
 
-        System.out.println("Board position " + new_x + " " + new_y + " has piece " + board[new_x][new_y].has_piece());
+        m.printMove();
+
+    }
+
+    public void changeTurn(){
+        if (turn == Piece_player.Human){
+            turn = Piece_player.AI;
+            Play();
+        } else {
+            turn = Piece_player.Human;
+        }
     }
 
     private int roundToTile(double i){
@@ -173,10 +179,9 @@ public class Checkers extends Application {
     }
 
     private void Play(){
-        if (!turn && !gameOver()){
-            OpponentAI AI = new OpponentAI(board, 8);
+        if (turn == Piece_player.AI && !gameOver()){
+            OpponentAI AI = new OpponentAI(board, 2);
             makeMove(AI.getBestMove());
-            System.out.println("AI makes move from: " + AI.getBestMove().getOldX() + " " + AI.getBestMove().getOldY() + " to: " + AI.getBestMove().getX() + " " +  AI.getBestMove().getY());
         }
     }
 
@@ -184,6 +189,18 @@ public class Checkers extends Application {
         return pieces.getChildren().isEmpty();
     }
 
+    public void printBoardState(){
+        for(int y = 0; y < grid_size; y++){
+            for(int x = 0; x < grid_size; x++) {
+                if (board[x][y].has_piece()) {
+                    System.out.print(" | " + board[x][y].getPiece().getPlayer());
+                } else{
+                    System.out.print(" | empty");
+                }
+                }
+            System.out.println(" ");
+            }
+    }
 
     @Override
     public void start(Stage primaryStage) {

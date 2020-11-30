@@ -1,21 +1,44 @@
 package Checkers_game;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 public class OpponentAI {
 
     private Tile[][] board;
     private int depth;
     private Move best_move;
+    private int static_evals;
 
     public OpponentAI(Tile[][] board, int depth) {
         this.board = board;
         this.depth = depth;
-        int best_move_index = minimax(board, depth, true, true);
-        ArrayList<Piece> pieces = getPlayerPieces(board, Piece_player.AI);
-        ArrayList<Move> moves = getAllAvailableMoves(pieces);
-        System.out.print("constructor " + moves.size());
-        best_move = moves.get(best_move_index);
+        ArrayList<Move> moves = getPlayersAvailableMoves(Piece_player.AI);
+        int best_score = Integer.MIN_VALUE;
+//        for (int i = 0; i < moves.size(); i++) {
+//            makeMove(moves.get(i));
+//            int min_max = minimax(depth, Piece_player.AI);
+//            if (min_max > best_score) {
+//                best_score = min_max;
+//                best_move = moves.get(i);
+//            }
+//            undoMove(moves.get(i));
+//        }
+        Random r = new Random();
+        best_move = moves.get(r.nextInt(moves.size()));
+    }
+
+    public void printBoardState(){
+        for(int y = 0; y < Checkers.grid_size; y++){
+            for(int x = 0; x < Checkers.grid_size; x++) {
+                if (board[x][y].has_piece()) {
+                    System.out.print(" | " + board[x][y].getPiece().getPlayer());
+                } else{
+                    System.out.print(" | empty");
+                }
+            }
+            System.out.println(" ");
+        }
     }
 
     public Move getBestMove(){
@@ -23,68 +46,60 @@ public class OpponentAI {
     }
 
     private int getScore(Tile[][] b){
-        return getNumberOfPlayerPieces(b, Piece_player.AI) - getNumberOfPlayerPieces(b, Piece_player.Human);
+        return getNumberOfPlayerPieces(Piece_player.AI) - getNumberOfPlayerPieces(Piece_player.Human);
     }
 
-    private int minimax(Tile[][] b, int depth, boolean max_player, boolean isRoot) {
-        // set default move
-        int move_index = 0;
-        // return move
-        if (depth == 0 | gameOver(b)) {
-            return getScore(b);
-        }
-
-        else if (max_player) {
-            int max_eval = Integer.MIN_VALUE;
-            ArrayList<Piece> pieces = getPlayerPieces(b, Piece_player.AI);
-            ArrayList<Move> moves = getAllAvailableMoves(pieces);
-            for(int i = 0; i< moves.size(); i++){
-                makeMove(moves.get(i), b);
-                int eval = minimax(b, depth - 1, false, false);
-               // undoMove
-                undoMove(moves.get(i), b);
-                // if root node and is better than current max - update move index
-                if (isRoot){
-                    if(eval > max_eval) {
-                        System.out.print("minmax " + moves.size());
-                        move_index = i;
-                    }
+    private int minimax(int depth, Piece_player player){
+        if (depth == 0 | gameOver(player)){
+            static_evals++;
+            return getScore(board);
+        } else {
+            if (player == Piece_player.AI){
+                // set initial val
+                int max_eval = Integer.MIN_VALUE;
+                // get all available moves
+                ArrayList<Move> moves = getPlayersAvailableMoves(Piece_player.AI);
+                for (int i = 0; i < moves.size(); i++) {
+                    makeMove(moves.get(i));
+                    int eval = minimax(depth - 1, Piece_player.Human);
+                    undoMove(moves.get(i));
+                    max_eval = Math.max(eval, max_eval);
                 }
-                else {
-                    // return max
-                    return Math.max(max_eval, eval);
+                return max_eval;
+            }
+            else {
+                // set initial val
+                int min_eval = Integer.MAX_VALUE;
+                // get all available moves
+                ArrayList<Move> moves = getPlayersAvailableMoves(Piece_player.Human);
+                for (int i = 0; i < moves.size(); i++) {
+                    makeMove(moves.get(i));
+                    int eval = minimax(depth - 1, Piece_player.AI);
+                    undoMove(moves.get(i));
+                    min_eval = Math.min(eval, min_eval);
                 }
+                return min_eval;
             }
         }
-        else {
-            int min_eval = Integer.MAX_VALUE;
-            ArrayList<Piece> pieces = getPlayerPieces(b, Piece_player.Human);
-            ArrayList<Move> moves = getAllAvailableMoves(pieces);
-            for(int i = 0; i< moves.size(); i++){
-                makeMove(moves.get(i), b);
-                int eval = minimax(b, depth - 1, true, false);
-                //undo move
-                undoMove(moves.get(i), b);
-                // return min
-                return Math.min(min_eval, eval);
-            }
+    }
+
+
+
+    private boolean gameOver(Piece_player player) {
+        ArrayList<Move> moves;
+        if (player == Piece_player.AI){
+            moves = getPlayersAvailableMoves(Piece_player.AI);
+        } else {
+            moves = getPlayersAvailableMoves(Piece_player.Human);
         }
-        System.out.println(move_index);
-
-        return move_index;
+        return moves.size() == 0;
     }
 
-    private boolean gameOver(Tile[][] b) {
-        int human_pieces = getNumberOfPlayerPieces(b, Piece_player.Human);
-        int AI_pieces = getNumberOfPlayerPieces(b, Piece_player.AI);
-        return human_pieces == 0 | AI_pieces == 0;
-    }
-
-    private int getNumberOfPlayerPieces(Tile[][] b, Piece_player player) {
+    private int getNumberOfPlayerPieces(Piece_player player) {
         int pieces = 0;
-        for (int i = 0; i < b.length; i++) {
-            for (int j = 0; j < b.length; j++) {
-                if (b[i][j].has_piece() && b[i][j].getPiece().getPlayer() == player) {
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board.length; j++) {
+                if (board[i][j].has_piece() && board[i][j].getPiece().getPlayer() == player) {
                     pieces++;
                 }
             }
@@ -92,58 +107,52 @@ public class OpponentAI {
         return pieces;
     }
 
-    private ArrayList<Piece> getPlayerPieces(Tile[][] b, Piece_player player) {
-        ArrayList<Piece> players_pieces = new ArrayList<>();
-        for (int i = 0; i < b.length; i++) {
-            for (int j = 0; j < b.length; j++) {
-                if (b[i][j].has_piece() && b[i][j].getPiece().getPlayer() == player) {
-                    players_pieces.add(b[i][j].getPiece());
+    private ArrayList<Move> getPlayersAvailableMoves(Piece_player player) {
+        ArrayList<Piece> pieces = new ArrayList<>();
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board.length; j++) {
+                if (board[i][j].has_piece() && board[i][j].getPiece().getPlayer() == player) {
+                    pieces.add(board[i][j].getPiece());
                 }
             }
         }
-        return players_pieces;
-    }
-
-    private ArrayList<Move> getAllAvailableMoves(ArrayList<Piece> pieces){
         ArrayList<Move> all_moves = new ArrayList<>();
         for(int i = 0; i < pieces.size(); i++){
-            pieces.get(i).clearAvailableMoves();
-            pieces.get(i).setAvailableMoves(new MoveManager(board, pieces.get(i)));
-            all_moves.addAll(pieces.get(i).getAvailableMoves().getValidMoves());
+            all_moves.addAll(pieces.get(i).getMoveManager().getValidMoves());
         }
         return all_moves;
     }
 
-    private void makeMove(Move m, Tile[][] b) {
-        // remove taken pieces from b
+    private void makeMove(Move m) {
+        // remove taken pieces from board
         ArrayList<Piece> taken_pieces = m.getPiecesTaken();
         Piece p = m.getPiece();
         for (Piece taken_piece : taken_pieces) {
-            b[taken_piece.getBoardX()][taken_piece.getBoardY()].setPiece(null);
+            board[taken_piece.getBoardX()][taken_piece.getBoardY()].setPiece(null);
         }
-        // set old b ref to null
-        b[p.getBoardX()][p.getBoardY()].setPiece(null);
-        // move piece to new position on b
-        b[m.getX()][m.getY()].setPiece(p);
+        // set old board ref to null
+        board[m.getOldX()][m.getOldY()].setPiece(null);
+        // move piece to new position on board
+        board[m.getX()][m.getY()].setPiece(p);
         // update pieces x and y co-ords
         p.setBoardX(m.getX());
         p.setBoardY(m.getY());
     }
 
-    private void undoMove(Move m, Tile[][] b){
+    private void undoMove(Move m) {
+        // remove taken pieces from board
+        ArrayList<Piece> taken_pieces = m.getPiecesTaken();
         Piece p = m.getPiece();
-        // set new b ref to null
-        b[m.getX()][m.getY()].setPiece(null);
-        // move piece back to old position on b
-        b[m.getOldX()][m.getOldY()].setPiece(p);
+        for (Piece taken_piece : taken_pieces) {
+            board[taken_piece.getBoardX()][taken_piece.getBoardY()].setPiece(taken_piece);
+        }
+        // set old board ref to null
+        board[m.getOldX()][m.getOldY()].setPiece(p);
+        // move piece to new position on board
+        board[m.getX()][m.getY()].setPiece(null);
         // update pieces x and y co-ords
         p.setBoardX(m.getOldX());
         p.setBoardY(m.getOldY());
-        // add taken pieces back to b
-        ArrayList<Piece> taken_pieces = m.getPiecesTaken();
-        for (Piece taken_piece : taken_pieces) {
-            b[taken_piece.getBoardX()][taken_piece.getBoardY()].setPiece(taken_piece);
-        }
     }
 
 }
