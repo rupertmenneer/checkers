@@ -6,6 +6,7 @@ import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
+import javafx.scene.media.AudioClip;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
@@ -24,7 +25,7 @@ public class Piece extends StackPane {
         private MoveManager moveManager;
         private double scale = 0.366;
         private boolean king;
-        private static final File skull_path = new File("/Users/rm594/Documents/Checkers_images/skull.png");
+        private static final File skull_path = new File("Checkers_images/skull.png");
 
 
         public MoveManager getMoveManager() {
@@ -45,6 +46,7 @@ public class Piece extends StackPane {
             this.movePiece(x, y);
             this.board_x = x;
             this.board_y = y;
+            this.moveManager = new MoveManager(board, this);
             // background
             Circle piece_bg = new Circle(Checkers.tile_size * scale);
             piece_bg.setFill(getColor().darker());
@@ -63,7 +65,7 @@ public class Piece extends StackPane {
             getChildren().addAll(piece_bg, piece_fg);
 
             this.setCursor(Cursor.OPEN_HAND);
-            this.moveManager = new MoveManager(board, this);
+
             setOnMousePressed(e-> this.setCursor(Cursor.CLOSED_HAND));
 
            setOnMouseDragged(e-> {
@@ -101,7 +103,11 @@ public class Piece extends StackPane {
             checkIfKinged(new_y);
             // don't change turn until animation is finished
             transition.setOnFinished(e -> {
-
+                // set up audio clip
+                String move_audio = new File("move_piece_sound.wav").toURI().toString();
+                AudioClip audioClip = new AudioClip(move_audio);
+                audioClip.setVolume(0.5);
+                audioClip.play();
                 // position piece in exact position
                 this.setLayoutX(new_x * Checkers.tile_size);
                 this.setLayoutY(new_y * Checkers.tile_size);
@@ -116,7 +122,6 @@ public class Piece extends StackPane {
 
             // play animation
             transition.play();
-
         }
 
         public void deathAnimation(Group group){
@@ -140,20 +145,18 @@ public class Piece extends StackPane {
         public boolean isKing(){
             return king;
         }
+
+        public void setKing(boolean isKing){
+            this.king = isKing;
+        }
         
         private void checkIfKinged(int new_y){
-//            System.out.println("player: " + player + " board pos " + board_y);
-            if(player == Piece_player.Human && new_y == 0){
-                System.out.println("KINGED HUMAN");
-
+            if (player == Piece_player.Human && new_y == 0) {
+                king = true;
+            } if (player == Piece_player.AI && new_y == 7) {
                 king = true;
             }
-            else if(player == Piece_player.AI && new_y == 7){
-                System.out.println("KINGED AI");
-
-                king = true;
-            }
-            if (king){
+            if (king) {
                 // Visually make king
                 Circle piece_king = new Circle(Checkers.tile_size * scale);
                 piece_king.setFill(Color.GOLD);
@@ -163,6 +166,7 @@ public class Piece extends StackPane {
                 piece_king.setTranslateY(Checkers.tile_size * -0.01);
                 this.getChildren().add(piece_king);
             }
+
         }
 
         public int getBoardX(){

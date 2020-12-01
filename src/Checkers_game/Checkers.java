@@ -2,35 +2,40 @@ package Checkers_game;
 
 import javafx.animation.TranslateTransition;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
 
-import java.awt.*;
-import java.lang.reflect.Array;
+import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 
 public class Checkers extends Application {
 
     public final static int tile_size = 72;
     public final static int grid_size = 8;
     public static Piece_player turn = Piece_player.Human;
+    public static boolean forceCapture = false;
+    private int difficulty = Difficulty.Normal.difficulty;
 
     private final Group tiles = new Group();
     private final Group pieces = new Group();
     private Group display_available_moves = new Group();
+    private Group display_hint = new Group();
     private final ArrayList<Piece> human_pieces = new ArrayList<>();
     private final ArrayList<Piece> ai_pieces = new ArrayList<>();
     private final Tile[][] board = new Tile[grid_size][grid_size];
@@ -69,7 +74,7 @@ public class Checkers extends Application {
                 }
             }
         tiles.setVisible(true);
-        root.getChildren().addAll(tiles,display_available_moves,pieces);
+        root.getChildren().addAll(tiles,display_available_moves, display_hint, pieces);
         return root;
     }
 
@@ -81,6 +86,7 @@ public class Checkers extends Application {
         p.setOnMousePressed(e-> {
             p.setCursor(Cursor.CLOSED_HAND);
 //            System.out.println("Piece pos " + p.getBoardX() + " " + p.getBoardY());
+            checkForceCapture(Piece_player.Human);
             showValidMoves(p);
         });
         // handle piece being moved
@@ -98,9 +104,36 @@ public class Checkers extends Application {
                 // make move with Move from Move Manager if it was a valid attempt
                 makeMove(p.getMoveManager().getMove(attempted_move));
             }
+
             display_available_moves.getChildren().clear();
+            display_hint.getChildren().clear();
         });
         return p;
+    }
+
+    private void checkForceCapture(Piece_player player){
+        ArrayList<Move> all_available_moves = getPlayersAvailableMoves(player);
+        for (Move move : all_available_moves){
+            if(move.getPiecesTaken().size() > 0){
+                forceCapture = true;
+            }
+        }
+    }
+
+    private ArrayList<Move> getPlayersAvailableMoves(Piece_player player) {
+        ArrayList<Piece> pieces = new ArrayList<>();
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board.length; j++) {
+                if (board[i][j].has_piece() && board[i][j].getPiece().getPlayer() == player) {
+                    pieces.add(board[i][j].getPiece());
+                }
+            }
+        }
+        ArrayList<Move> all_moves = new ArrayList<>();
+        for(int i = 0; i < pieces.size(); i++){
+            all_moves.addAll(pieces.get(i).getMoveManager().getValidMoves());
+        }
+        return all_moves;
     }
 
     private void showValidMoves(Piece p){
@@ -135,11 +168,21 @@ public class Checkers extends Application {
         board[new_x][new_y].setPiece(p);
         // animate piece
         m.printMove();
+        //
+        if(!p.isKing()) {
+            p.setKing(m.capturesKing());
+        }
         p.animatePiece(this, new_x, new_y);
 
     }
 
     public void changeTurn(){
+        forceCapture = false;
+        if(gameOver(turn)){
+            System.out.println("GAME OVER");
+            PopUp gameover_window = new PopUp();
+            gameover_window.display("Game Over", turn + " wins!", "close window");
+        }
         if (turn == Piece_player.Human){
             turn = Piece_player.AI;
             Play();
@@ -160,66 +203,112 @@ public class Checkers extends Application {
         launch(args);
     }
 
-    public MenuBar generateMenu(){
-        // menu
-        // create file menu item
-        final Menu menu1 = new Menu("File");
-        MenuItem menuItem1 = new MenuItem("Help...");
+    public MenuBar generateMenu(Stage p){
+        // GAME MENU
+        final Menu menuGame = new Menu("Game");
+        MenuItem menuItem1 = new MenuItem("New Game");
+        menuItem1.setOnAction( e ->
+        {
+            System.out.println( "Restarting app!" );
+            p.close();
+            Platform.runLater( () -> new Checkers().start( new Stage()));
+        } );
         MenuItem menuItem2 = new MenuItem("Exit Game");
-        menu1.getItems().add(menuItem1);
-        menu1.getItems().add(menuItem2);
-        // create game options menu item
-        final Menu menu2 = new Menu("Options");
+        menuItem2.setOnAction(e->{closeProgram(p);});
+        menuGame.getItems().addAll(menuItem1, menuItem2);
+
+        // DIFFICULTY
+        final Menu menuDifficulty = new Menu("Change Difficulty...");
+        RadioMenuItem easy = new RadioMenuItem("Too young to die! (easy)");
+        easy.setOnAction(e->{difficulty = Difficulty.Easy.difficulty;});
+        RadioMenuItem normal = new RadioMenuItem("Normal");
+        normal.setOnAction(e->{difficulty = Difficulty.Normal.difficulty;});
+        RadioMenuItem hard = new RadioMenuItem("Bring it on! (hard)");
+        hard.setOnAction(e->{difficulty = Difficulty.Hard.difficulty;});
+        normal.setSelected(true);
+        ToggleGroup toggleGroup = new ToggleGroup();
+        toggleGroup.getToggles().addAll(easy, normal, hard);
+        menuDifficulty.getItems().addAll(easy, normal, hard);
+
+        // HELP
+        final Menu menuHelp = new Menu("Help...");
+        MenuItem menuItem4 = new MenuItem("Rules");
+        menuItem4.setOnAction(e->{displayRules();});
+        MenuItem menuItem5 = new MenuItem("Get Move Hint");
+        menuItem5.setOnAction(e->{displayMoveHint();});
+        menuHelp.getItems().addAll(menuItem4, menuItem5);
+
         MenuBar menuBar = new MenuBar();
         menuBar.setStyle("-fx-background-color: cornsilk");
-        menuBar.getMenus().addAll(menu1, menu2);
+        // add menus to menu bar
+        menuBar.getMenus().addAll(menuGame, menuDifficulty, menuHelp);
         return menuBar;
     }
 
+    private void displayMoveHint() {
+        checkForceCapture(Piece_player.Human);
+        OpponentAI hintFromAI = new OpponentAI(board, difficulty, Piece_player.Human);
+        Move hint = hintFromAI.getBestMove();
+        Rectangle move = new Rectangle(Checkers.tile_size, Checkers.tile_size);
+        Rectangle piece = new Rectangle(Checkers.tile_size, Checkers.tile_size);
+        move.setVisible(true);
+        move.setDisable(true);
+        piece.setVisible(true);
+        piece.setDisable(true);
+        move.setFill(Color.CADETBLUE);
+        piece.setFill(Color.CADETBLUE);
+        move.setOpacity(0.5);
+        piece.setOpacity(0.5);
+        move.setTranslateX(hint.getX()*Checkers.tile_size);
+        move.setTranslateY(hint.getY()*Checkers.tile_size);
+        piece.setTranslateX(hint.getOldX()*Checkers.tile_size);
+        piece.setTranslateY(hint.getOldY()*Checkers.tile_size);
+        display_hint.getChildren().addAll(move, piece);
+
+    }
+
     private void Play(){
-        if (turn == Piece_player.AI && !gameOver()){
-            OpponentAI AI = new OpponentAI(board, 10);
+        if (turn == Piece_player.AI && !gameOver(Piece_player.AI)){
+            checkForceCapture(Piece_player.AI);
+            OpponentAI AI = new OpponentAI(board, difficulty, Piece_player.AI);
             makeMove(AI.getBestMove());
         }
     }
 
-    private boolean gameOver(){
-        return pieces.getChildren().isEmpty();
-    }
-
-    public void printBoardState(){
-        for(int y = 0; y < grid_size; y++){
-            for(int x = 0; x < grid_size; x++) {
-                if (board[x][y].has_piece()) {
-                    if (board[x][y].getPiece().getPlayer() == Piece_player.AI) {
-                        System.out.print(" | " + board[x][y].getPiece());
-                    }
-                    if (board[x][y].getPiece().getPlayer() == Piece_player.Human) {
-                        System.out.print(" | " + board[x][y].getPiece());
-                    }
-                } else{
-                    System.out.print(" |     empty     ");
-                }
-                }
-            System.out.println(" ");
-            }
+    private boolean gameOver(Piece_player p){
+        if (getPlayersAvailableMoves(Piece_player.AI).size() == 0 | getPlayersAvailableMoves(Piece_player.Human).size() == 0){
+            return true;
+        }
+        return false;
     }
 
     @Override
     public void start(Stage primaryStage) {
+
         // game window
         BorderPane root = new BorderPane();
-        // menu
-        MenuBar menu = generateMenu();
+
         // generate game board
         BorderPane game_window = new BorderPane();
         Pane board_pane = generateBoard();
         game_window.setCenter(board_pane);
+
+        // menu
+        MenuBar menu = generateMenu(primaryStage);
+
         // create game window with menu and board
         root.setTop(menu);
         root.setCenter(game_window);
         // create scene with above layout
         Scene scene = new Scene(root);
+
+        // set up music
+        String music_path = new File("cherryBlossom.mp3").toURI().toString();
+        Media music = new Media (music_path);
+        MediaPlayer mediaPlayer = new MediaPlayer(music);
+        mediaPlayer.setVolume(0.05);
+        mediaPlayer.play();
+
 
         primaryStage.setTitle("Checkers");
         primaryStage.setScene(scene);
@@ -227,5 +316,16 @@ public class Checkers extends Application {
         primaryStage.initStyle(StageStyle.UNIFIED);
         primaryStage.show();
     }
+
+    private void closeProgram(Stage window){
+        PopUp.display("Exit Confirmation", "Are you sure you want to exit?", "Exit game");
+        window.close();
+    }
+
+    private void displayRules(){
+        RulesDisplay display = new RulesDisplay();
+        display.displayRules("Rules");
+    }
+
 
 }

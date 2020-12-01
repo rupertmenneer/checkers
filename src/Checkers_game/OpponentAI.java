@@ -1,23 +1,32 @@
 package Checkers_game;
-
 import java.util.ArrayList;
-import java.util.Random;
-
 public class OpponentAI {
 
     private Tile[][] board;
     private int depth;
     private Move best_move;
     private int static_evals;
-    private int AI_pieces;
-    private int AI_pieces_king;
-    private int human_pieces;
-    private int human_pieces_king;
 
-    public OpponentAI(Tile[][] board, int depth) {
+    // player variables
+    private Piece_player player;
+    private Piece_player opposingPlayer;
+    // score variables
+    private int player_pieces;
+    private int player_pieces_king;
+    private int opponent_pieces;
+    private int opponent_pieces_king;
+
+    public OpponentAI(Tile[][] board, int depth, Piece_player player) {
         this.board = board;
         this.depth = depth;
         initaliseBoardVariables();
+        this.player = player;
+        if(this.player == Piece_player.AI){
+            this.opposingPlayer = Piece_player.Human;
+        } else {
+            this.opposingPlayer = Piece_player.AI;
+        }
+
         this.best_move = bestMove();
     }
 
@@ -25,17 +34,17 @@ public class OpponentAI {
         for (int i = 0; i < board.length; i++) {
             for (int j = 0; j < board.length; j++) {
                 if(this.board[i][j].has_piece()){
-                    if (this.board[i][j].getPiece().getPlayer() == Piece_player.AI) {
-                        AI_pieces++;
+                    if (this.board[i][j].getPiece().getPlayer() == player && !this.board[i][j].getPiece().isKing()) {
+                        player_pieces++;
                     }
-                    else if (this.board[i][j].getPiece().getPlayer() == Piece_player.AI && this.board[i][j].getPiece().isKing()) {
-                        AI_pieces_king++;
+                    else if (this.board[i][j].getPiece().getPlayer() == player && this.board[i][j].getPiece().isKing()) {
+                        player_pieces_king++;
                     }
-                    else if (this.board[i][j].getPiece().getPlayer() == Piece_player.Human) {
-                        human_pieces++;
+                    else if (this.board[i][j].getPiece().getPlayer() == opposingPlayer && !this.board[i][j].getPiece().isKing()) {
+                        opponent_pieces++;
                     }
-                    else if (this.board[i][j].getPiece().getPlayer() == Piece_player.Human && this.board[i][j].getPiece().isKing()) {
-                        human_pieces_king++;
+                    else if (this.board[i][j].getPiece().getPlayer() == opposingPlayer && this.board[i][j].getPiece().isKing()) {
+                        opponent_pieces_king++;
                     }
                 }
 
@@ -44,53 +53,50 @@ public class OpponentAI {
     }
 
     private Move bestMove(){
-        ArrayList<Move> moves = getPlayersAvailableMoves(Piece_player.AI);
+        ArrayList<Move> moves = getPlayersAvailableMoves(player);
         // initalise move
         Move m = moves.get(0);
         int best_score = Integer.MIN_VALUE;
         for (int i = 0; i < moves.size(); i++) {
             makeMove(moves.get(i));
-            int min_max = minimax(depth - 1, Piece_player.Human, Integer.MIN_VALUE, Integer.MAX_VALUE);
+            int min_max = minimax(depth - 1, opposingPlayer, Integer.MIN_VALUE, Integer.MAX_VALUE);
             if (min_max > best_score) {
                 best_score = min_max;
                 m = moves.get(i);
+                System.out.println(best_score);
             }
             undoMove(moves.get(i));
         }
-        System.out.println(static_evals);
         return m;
     }
 
     public Move getBestMove(){
-
         return best_move;
     }
 
     private int getScore(Tile[][] b){
-        // 100 points for taking piece
-        int taking_pieces_score = (human_pieces - getNumberOfPlayerPieces(Piece_player.Human, false))*100;
-        // -110 points for losing piece
-        int losing_pieces_score = -(AI_pieces - getNumberOfPlayerPieces(Piece_player.AI, false))*100;
-        // 200 points for taking a king piece / -200 for conceding
-        int taking_kings_score = (human_pieces_king - getNumberOfPlayerPieces(Piece_player.Human, true))*200;
-        // -210 points for losing a king piece / 210 for gaining
-        int losing_kings_score = -(AI_pieces_king - getNumberOfPlayerPieces(Piece_player.AI, true))*200;
-        return (taking_pieces_score + losing_pieces_score + taking_kings_score + losing_kings_score);
+        // -100 points for losing piece
+        int players_piece_difference = (getNumberOfPlayerPieces(player, false) - getNumberOfPlayerPieces(opposingPlayer, false))*100;
+        // 200 points for gaining a king (-200 for losing)
+        int players_kings = (getNumberOfPlayerPieces(player, true) - player_pieces_king)*200;
+        // -200 letting opponent king / +200 for taking their king
+        int opponents_kings = -(getNumberOfPlayerPieces(opposingPlayer, true) - opponent_pieces_king)*200;
+        return (players_piece_difference + players_kings + opponents_kings);
     }
 
-    private int minimax(int depth, Piece_player player, int alpha, int beta){
-        if (depth == 0 | gameOver(player)){
+    private int minimax(int depth, Piece_player player_turn, int alpha, int beta){
+        if (depth == 0 | gameOver(player_turn)){
             static_evals++;
             return getScore(board);
         } else {
-            if (player == Piece_player.AI){
+            if (player_turn == player){
                 // set initial val
                 int max_eval = Integer.MIN_VALUE;
                 // get all available moves
-                ArrayList<Move> moves = getPlayersAvailableMoves(Piece_player.AI);
+                ArrayList<Move> moves = getPlayersAvailableMoves(player);
                 for (int i = 0; i < moves.size(); i++) {
                     makeMove(moves.get(i));
-                    int eval = minimax(depth - 1, Piece_player.Human, alpha, beta);
+                    int eval = minimax(depth - 1, opposingPlayer, alpha, beta);
                     undoMove(moves.get(i));
                     max_eval = Math.max(eval, max_eval);
                     alpha = Math.max( alpha, max_eval);
@@ -104,10 +110,10 @@ public class OpponentAI {
                 // set initial val
                 int min_eval = Integer.MAX_VALUE;
                 // get all available moves
-                ArrayList<Move> moves = getPlayersAvailableMoves(Piece_player.Human);
+                ArrayList<Move> moves = getPlayersAvailableMoves(opposingPlayer);
                 for (int i = 0; i < moves.size(); i++) {
                     makeMove(moves.get(i));
-                    int eval = minimax(depth - 1, Piece_player.AI, alpha, beta);
+                    int eval = minimax(depth - 1, player, alpha, beta);
                     undoMove(moves.get(i));
                     min_eval = Math.min(eval, min_eval);
                     beta = Math.min( alpha, min_eval);
@@ -121,17 +127,18 @@ public class OpponentAI {
     }
 
 
-
-    private boolean gameOver(Piece_player player) {
+    // this method checks whether the game is over e.g. no available moves when it's the players turn
+    private boolean gameOver(Piece_player p) {
         ArrayList<Move> moves;
-        if (player == Piece_player.AI){
-            moves = getPlayersAvailableMoves(Piece_player.AI);
+        if (p == player){
+            moves = getPlayersAvailableMoves(player);
         } else {
-            moves = getPlayersAvailableMoves(Piece_player.Human);
+            moves = getPlayersAvailableMoves(opposingPlayer);
         }
         return moves.size() == 0;
     }
 
+    // this method returns the number of standard or king pieces for a given player
     private int getNumberOfPlayerPieces(Piece_player player, boolean king) {
         int pieces = 0;
         for (int i = 0; i < board.length; i++) {
@@ -144,6 +151,8 @@ public class OpponentAI {
         return pieces;
     }
 
+    // this method searches board for all of a players pieces on the board, it then
+    // finds all valid moves for all of the players pieces
     private ArrayList<Move> getPlayersAvailableMoves(Piece_player player) {
         ArrayList<Piece> pieces = new ArrayList<>();
         for (int i = 0; i < board.length; i++) {
@@ -160,6 +169,7 @@ public class OpponentAI {
         return all_moves;
     }
 
+    // this method is used by the AI in its minimax algorithm, it makes the move on the board (but not the UI)
     private void makeMove(Move m) {
         // remove taken pieces from board
         ArrayList<Piece> taken_pieces = m.getPiecesTaken();
@@ -174,8 +184,14 @@ public class OpponentAI {
         // update pieces x and y co-ords
         p.setBoardX(m.getX());
         p.setBoardY(m.getY());
+        // is now king?
+        if(m.capturesKing()) {
+            p.setKing(true);
+        }
     }
 
+    // this method is used by the AI in it's minimax method, it reverses the move given to it, this is used
+    // to recursively restore the board to it's normal state as moves are explored in minimax.
     private void undoMove(Move m) {
         // remove taken pieces from board
         ArrayList<Piece> taken_pieces = m.getPiecesTaken();
@@ -190,7 +206,8 @@ public class OpponentAI {
         // update pieces x and y co-ords
         p.setBoardX(m.getOldX());
         p.setBoardY(m.getOldY());
-
+        // set back piece's king status:
+        p.setKing(m.isAlreadyKing());
     }
 
 }

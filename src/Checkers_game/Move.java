@@ -9,6 +9,8 @@ public class Move {
     private int old_y;
     private ArrayList<Piece> piecesTaken;
     private Piece piece;
+    private boolean capturesKing;
+    private boolean alreadyKing;
 
     public Move(Piece piece, int x, int y, int old_x, int old_y){
         this.piece = piece;
@@ -16,7 +18,12 @@ public class Move {
         this.y = y;
         this.old_x = old_x;
         this.old_y = old_y;
+        this.alreadyKing = piece.isKing();
         piecesTaken = new ArrayList<>();
+    }
+
+    public void setCapturesKing() {
+        this.capturesKing = doesMoveCaptureKing();
     }
 
     public int getX() {
@@ -27,6 +34,18 @@ public class Move {
     }
     public int getOldX() { return old_x; }
     public int getOldY() { return old_y; }
+    public boolean capturesKing(){return capturesKing; }
+    public boolean isAlreadyKing(){return alreadyKing;}
+
+    private boolean doesMoveCaptureKing(){
+        for(Piece taken : piecesTaken){
+            if (taken.isKing()){
+                return true;
+            }
+        }
+        return false;
+    }
+
 
     public boolean equals(Move m) {
         return this.x == m.getX() && this.y == m.getY();
@@ -46,8 +65,8 @@ public class Move {
 
     public void printMove(){
         for (Piece taken : piecesTaken){
-            System.out.println("Piece taken from: " + taken.getBoardX() + " " + taken.getBoardY());
+            System.out.println("Piece taken from: " + taken.getBoardX() + " " + taken.getBoardY() + " is taken a king? " + this.capturesKing);
         }
-//        System.out.println("This move - from old X " + old_x + " old Y " + old_y + " to new X  " + x + " new Y " + y + " takes this many pieces: " + piecesTaken.size());
     }
+
 }
