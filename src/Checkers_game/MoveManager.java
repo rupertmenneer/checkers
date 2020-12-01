@@ -15,49 +15,76 @@ public class MoveManager {
         this.valid_moves = new ArrayList<>();
     }
 
-    private ArrayList<Move> findValidMoves(int x, int y, Piece taken){
+    private ArrayList<Move> findValidMoves(int x, int y, Move prevMove){
         ArrayList<Move> move_list = new ArrayList<>();
         // assign direction
         int d = p.getPlayer().direction;
         // skip non capturing moves if piece has already captured
-        if(taken == null) {
+        if(prevMove == null) {
             // check non capture left (+ move within board)
             if (withinBoundary(x-1, y+d) && !board[x - 1][y + d].has_piece()) {
-                move_list.add(new Move(p,x - 1, y + d, x, y));
+                move_list.add(new Move(p,x - 1, y + d, p.getBoardX(), p.getBoardY()));
+            }
+            // KING check non capture left (+ move within board)
+            if (p.isKing() && withinBoundary(x-1, y-d) && !board[x - 1][y - d].has_piece()) {
+                move_list.add(new Move(p,x - 1, y - d, p.getBoardX(), p.getBoardY()));
             }
             // check non capture right (+ move within board)
             if (withinBoundary(x+1, y+d) && !board[x + 1][y + d].has_piece()) {
-                move_list.add(new Move(p,x + 1, y + d, x, y));
+                move_list.add(new Move(p,x + 1, y + d, p.getBoardX(), p.getBoardY()));
+            }
+            // KING check non capture right (+ move within board)
+            if (p.isKing() && withinBoundary(x+1, y-d) && !board[x + 1][y - d].has_piece()) {
+                move_list.add(new Move(p,x + 1, y - d, p.getBoardX(), p.getBoardY()));
             }
         }
         // check if there is a valid capture move left (enemy diagonal AND free space in line afterwards)
         if(captureCheck(x, y, 1, d)){
             // if capture is valid, add move and check if any more valid captures from new position
-            Move m = new Move(p,x + 2, y + (2*d), x, y);
-            // add captured piece to move's pieces taken
-            Piece taken_piece = board[x+1][y+d].getPiece();
-            if(taken != null){
-                m.pieceTaken(taken);
+            Move m = new Move(p,x + 2, y + (2*d), p.getBoardX(), p.getBoardY());
+            // add previously captured piece to this move's pieces taken
+            if(prevMove != null) {
+                m.pieceTaken(prevMove.getPiecesTaken());
             }
-            m.pieceTaken(taken_piece);
-            move_list.add(m);
-            move_list.addAll(findValidMoves(x + 2, y + (2*d) , taken_piece));
+                // add newly captured piece to pieces taken
+            if (prevMove == null | !alreadyTaken(board[x + 1][y + d].getPiece(), m)) {
+                ArrayList<Piece> taken_piece = new ArrayList<>();
+                taken_piece.add(board[x + 1][y + d].getPiece());
+                m.pieceTaken(taken_piece);
+                move_list.add(m);
+                move_list.addAll(findValidMoves(x + 2, y + (2 * d), m));
+            }
+
         }
         // check if there is a valid capture move right (enemy diagonal AND free space in line afterwards)
         if(captureCheck(x, y, -1, d)){
             // if capture is valid, add move and check if any more valid captures from new position
-            Move m = new Move(p,x - 2, y + (2*d), x, y);
-            // add captured piece to move's pieces taken
-            Piece taken_piece = board[x-1][y+d].getPiece();
-            if(taken != null){
-                m.pieceTaken(taken);
+            Move m = new Move(p,x - 2, y + (2*d), p.getBoardX(), p.getBoardY());
+            // add previously captured piece to this move's pieces taken
+            if(prevMove != null) {
+                m.pieceTaken(prevMove.getPiecesTaken());
+                // add newly captured piece to pieces taken
             }
-            m.pieceTaken(taken_piece);
-            move_list.add(m);
-            move_list.addAll(findValidMoves(x - 2, y + (2*d) , taken_piece));
+            if (prevMove == null | !alreadyTaken(board[x - 1][y + d].getPiece(), m)) {
+                ArrayList<Piece> taken_piece = new ArrayList<>();
+                taken_piece.add(board[x - 1][y + d].getPiece());
+                m.pieceTaken(taken_piece);
+                move_list.add(m);
+                move_list.addAll(findValidMoves(x - 2, y + (2 * d), m));
+            }
+
         }
         // return valid move list
         return move_list;
+    }
+
+    private boolean alreadyTaken(Piece p, Move m){
+        for (Piece taken : m.getPiecesTaken()){
+            if(p == taken){
+                return true;
+            }
+        }
+        return false;
     }
 
     public ArrayList<Move> getValidMoves() {

@@ -32,8 +32,8 @@ public class Move {
         return this.x == m.getX() && this.y == m.getY();
     }
 
-    public void pieceTaken(Piece p){
-        this.piecesTaken.add(p);
+    public void pieceTaken(ArrayList<Piece> p){
+        this.piecesTaken.addAll(p);
     }
 
     public ArrayList<Piece> getPiecesTaken() {
@@ -45,6 +45,9 @@ public class Move {
     }
 
     public void printMove(){
-        System.out.println("This move - from old X " + old_x + " old Y " + old_y + " to new X  " + x + " new Y " + y + " takes this many pieces: " + piecesTaken.size());
+        for (Piece taken : piecesTaken){
+            System.out.println("Piece taken from: " + taken.getBoardX() + " " + taken.getBoardY());
+        }
+//        System.out.println("This move - from old X " + old_x + " old Y " + old_y + " to new X  " + x + " new Y " + y + " takes this many pieces: " + piecesTaken.size());
     }
 }

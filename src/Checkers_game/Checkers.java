@@ -8,6 +8,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.scene.control.Menu;
@@ -79,7 +80,7 @@ public class Checkers extends Application {
         // handle selecting a piece
         p.setOnMousePressed(e-> {
             p.setCursor(Cursor.CLOSED_HAND);
-            System.out.println("Piece pos " + p.getBoardX() + " " + p.getBoardY());
+//            System.out.println("Piece pos " + p.getBoardX() + " " + p.getBoardY());
             showValidMoves(p);
         });
         // handle piece being moved
@@ -124,20 +125,17 @@ public class Checkers extends Application {
         int new_y = m.getY();
         // are any pieces taken in this move? if so remove them
         ArrayList<Piece > taken_pieces = m.getPiecesTaken();
-        System.out.println("Number of pieces taken: " + taken_pieces.size());
         for (Piece taken_piece : taken_pieces) {
             board[taken_piece.getBoardX()][taken_piece.getBoardY()].setPiece(null);
-            pieces.getChildren().remove(taken_piece);
-            System.out.println("Piece taken");
+            taken_piece.deathAnimation(pieces);
         }
         // set old board ref to null
-        board[p.getBoardX()][p.getBoardY()].setPiece(null);
+        board[m.getOldX()][m.getOldY()].setPiece(null);
         // update new board ref
         board[new_x][new_y].setPiece(p);
         // animate piece
-        p.animatePiece(this, new_x, new_y);
-
         m.printMove();
+        p.animatePiece(this, new_x, new_y);
 
     }
 
@@ -180,7 +178,7 @@ public class Checkers extends Application {
 
     private void Play(){
         if (turn == Piece_player.AI && !gameOver()){
-            OpponentAI AI = new OpponentAI(board, 2);
+            OpponentAI AI = new OpponentAI(board, 10);
             makeMove(AI.getBestMove());
         }
     }
@@ -193,9 +191,14 @@ public class Checkers extends Application {
         for(int y = 0; y < grid_size; y++){
             for(int x = 0; x < grid_size; x++) {
                 if (board[x][y].has_piece()) {
-                    System.out.print(" | " + board[x][y].getPiece().getPlayer());
+                    if (board[x][y].getPiece().getPlayer() == Piece_player.AI) {
+                        System.out.print(" | " + board[x][y].getPiece());
+                    }
+                    if (board[x][y].getPiece().getPlayer() == Piece_player.Human) {
+                        System.out.print(" | " + board[x][y].getPiece());
+                    }
                 } else{
-                    System.out.print(" | empty");
+                    System.out.print(" |     empty     ");
                 }
                 }
             System.out.println(" ");

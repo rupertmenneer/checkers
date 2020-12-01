@@ -1,14 +1,19 @@
 package Checkers_game;
 
+import javafx.animation.FadeTransition;
 import javafx.animation.TranslateTransition;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
+import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
+import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
+import javafx.scene.text.Text;
 
+import java.io.File;
 import java.util.ArrayList;
 
 public class Piece extends StackPane {
@@ -18,6 +23,9 @@ public class Piece extends StackPane {
         private Piece_player player;
         private MoveManager moveManager;
         private double scale = 0.366;
+        private boolean king;
+        private static final File skull_path = new File("/Users/rm594/Documents/Checkers_images/skull.png");
+
 
         public MoveManager getMoveManager() {
             return moveManager;
@@ -32,7 +40,7 @@ public class Piece extends StackPane {
         }
 
         public Piece(Piece_player player, int x, int y, Tile[][] board){
-
+            this.king = false;
             this.player = player;
             this.movePiece(x, y);
             this.board_x = x;
@@ -51,7 +59,7 @@ public class Piece extends StackPane {
             piece_fg.setStrokeWidth(Checkers.tile_size * 0.1 * scale);
             piece_fg.setTranslateX(Checkers.tile_size * 0.09);
             piece_fg.setTranslateY(Checkers.tile_size * 0.05);
-
+            
             getChildren().addAll(piece_bg, piece_fg);
 
             this.setCursor(Cursor.OPEN_HAND);
@@ -78,8 +86,7 @@ public class Piece extends StackPane {
         }
 
         public void animatePiece(Checkers game, int new_x, int new_y){
-            // remove dragged movement
-//            this.relocate(new_x * Checkers.tile_size, new_y * Checkers.tile_size);
+
             // move piece to new valid move with animation and 0.5 sec delay
             TranslateTransition transition = new TranslateTransition();
             transition.setDuration(Duration.seconds(0.5));
@@ -90,8 +97,11 @@ public class Piece extends StackPane {
             // set animation values
             transition.setToX((new_x - board_x) * Checkers.tile_size);
             transition.setToY((new_y - board_y) * Checkers.tile_size);
+            // check if kinged
+            checkIfKinged(new_y);
             // don't change turn until animation is finished
             transition.setOnFinished(e -> {
+
                 // position piece in exact position
                 this.setLayoutX(new_x * Checkers.tile_size);
                 this.setLayoutY(new_y * Checkers.tile_size);
@@ -99,14 +109,60 @@ public class Piece extends StackPane {
                 this.setTranslateX(0);
                 this.setTranslateY(0);
                 // update pieces board position reference
-                this.setBoardX(new_x);
-                this.setBoardY(new_y);
-                // update piece's ref to board position
+                board_x = new_x;
+                board_y = new_y;
                 game.changeTurn();
             });
+
             // play animation
             transition.play();
-            System.out.println("expected " + new_x + " " + new_y);
+
+        }
+
+        public void deathAnimation(Group group){
+            group.getChildren().remove(this);
+            Image skull = new Image(skull_path.toURI().toString());
+            Rectangle s = new Rectangle(Checkers.tile_size*0.9, Checkers.tile_size*0.9);
+            s.setFill(new ImagePattern(skull, 0, 0, 1, 1, true));
+            s.relocate(board_x*Checkers.tile_size, board_y*Checkers.tile_size);
+            s.setTranslateX(Checkers.tile_size * 0.05);
+            s.setTranslateY(Checkers.tile_size * 0.05);
+            group.getChildren().add(s);
+            FadeTransition ft = new FadeTransition(Duration.millis(2000), s);
+            ft.setFromValue(1.0);
+            ft.setToValue(0.0);
+            ft.setOnFinished(e -> {
+                group.getChildren().remove(s);
+            });
+            ft.play();
+        }
+
+        public boolean isKing(){
+            return king;
+        }
+        
+        private void checkIfKinged(int new_y){
+//            System.out.println("player: " + player + " board pos " + board_y);
+            if(player == Piece_player.Human && new_y == 0){
+                System.out.println("KINGED HUMAN");
+
+                king = true;
+            }
+            else if(player == Piece_player.AI && new_y == 7){
+                System.out.println("KINGED AI");
+
+                king = true;
+            }
+            if (king){
+                // Visually make king
+                Circle piece_king = new Circle(Checkers.tile_size * scale);
+                piece_king.setFill(Color.GOLD);
+                piece_king.setStroke(Color.BLACK);
+                piece_king.setStrokeWidth(Checkers.tile_size * 0.1 * scale);
+                piece_king.setTranslateX(Checkers.tile_size * 0.09);
+                piece_king.setTranslateY(Checkers.tile_size * -0.01);
+                this.getChildren().add(piece_king);
+            }
         }
 
         public int getBoardX(){
