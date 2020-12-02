@@ -10,16 +10,10 @@ public class OpponentAI {
     // player variables
     private Piece_player player;
     private Piece_player opposingPlayer;
-    // score variables
-    private int player_pieces;
-    private int player_pieces_king;
-    private int opponent_pieces;
-    private int opponent_pieces_king;
 
     public OpponentAI(Tile[][] board, int depth, Piece_player player) {
         this.board = board;
         this.depth = depth;
-        initaliseBoardVariables();
         this.player = player;
         if(this.player == Piece_player.AI){
             this.opposingPlayer = Piece_player.Human;
@@ -30,27 +24,6 @@ public class OpponentAI {
         this.best_move = bestMove();
     }
 
-    private void initaliseBoardVariables(){
-        for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board.length; j++) {
-                if(this.board[i][j].has_piece()){
-                    if (this.board[i][j].getPiece().getPlayer() == player && !this.board[i][j].getPiece().isKing()) {
-                        player_pieces++;
-                    }
-                    else if (this.board[i][j].getPiece().getPlayer() == player && this.board[i][j].getPiece().isKing()) {
-                        player_pieces_king++;
-                    }
-                    else if (this.board[i][j].getPiece().getPlayer() == opposingPlayer && !this.board[i][j].getPiece().isKing()) {
-                        opponent_pieces++;
-                    }
-                    else if (this.board[i][j].getPiece().getPlayer() == opposingPlayer && this.board[i][j].getPiece().isKing()) {
-                        opponent_pieces_king++;
-                    }
-                }
-
-            }
-        }
-    }
 
     private Move bestMove(){
         ArrayList<Move> moves = getPlayersAvailableMoves(player);
@@ -63,7 +36,7 @@ public class OpponentAI {
             if (min_max > best_score) {
                 best_score = min_max;
                 m = moves.get(i);
-                System.out.println(best_score);
+//                System.out.println(best_score);
             }
             undoMove(moves.get(i));
         }
@@ -74,14 +47,63 @@ public class OpponentAI {
         return best_move;
     }
 
+    private int getDefensivePositions(){
+        int defensive_positions = 0;
+        for (int i = 0; i < board.length; i++) {
+            for (int j = 0; j < board.length; j++) {
+                if(board[i][j].has_piece()){
+                    // if both spots behind it are occupied
+                    if(withinBoundary(i-1,j-1) && withinBoundary(i+1,j-1) &&
+                    board[i-1][j-1].has_piece() && board[i+1][j-1].has_piece() &&
+                    board[i-1][j-1].getPiece().getPlayer()==player && board[i+1][j-1].getPiece().getPlayer()==player){
+                        defensive_positions++;
+                    }
+                    // if both spots in front are occupied
+                    if(withinBoundary(i-1,j+1) && withinBoundary(i+1,j+1) &&
+                    board[i-1][j+1].has_piece() && board[i+1][j+1].has_piece() &&
+                    board[i-1][j+1].getPiece().getPlayer()==player && board[i+1][j+1].getPiece().getPlayer()==player){
+                        defensive_positions++;
+                    }
+                }
+            }
+        }
+        return defensive_positions;
+    }
+
+    private int getBackRowPieces(){
+        int backRow = 0;
+        for (int y = 0; y < board.length; y++) {
+            if(player == Piece_player.AI && board[0][y].has_piece() && board[0][y].getPiece().getPlayer() == player){
+                    backRow++;
+                }
+            if(player == Piece_player.Human && board[7][y].has_piece() && board[7][y].getPiece().getPlayer() == player){
+                backRow++;
+                }
+            }
+        return backRow;
+    }
+
+    private boolean withinBoundary(int x, int y){
+        return x >= 0 && x <= 7 && y >= 0 && y <= 7;
+    }
+
     private int getScore(Tile[][] b){
         // -100 points for losing piece
-        int players_piece_difference = (getNumberOfPlayerPieces(player, false) - getNumberOfPlayerPieces(opposingPlayer, false))*100;
+        int players_piece_difference = (getNumberOfPlayerPieces(player, false) - getNumberOfPlayerPieces(opposingPlayer, false))*200;
+//        System.out.println("Piece difference  "+  players_piece_difference);
         // 200 points for gaining a king (-200 for losing)
-        int players_kings = (getNumberOfPlayerPieces(player, true) - player_pieces_king)*200;
+        int current_kings = getNumberOfPlayerPieces(player, true)*300;
+//        System.out.println("Friendly KINGS  "+  current_kings);
         // -200 letting opponent king / +200 for taking their king
-        int opponents_kings = -(getNumberOfPlayerPieces(opposingPlayer, true) - opponent_pieces_king)*200;
-        return (players_piece_difference + players_kings + opponents_kings);
+        int opponents_curent_kings = -getNumberOfPlayerPieces(opposingPlayer, true)*500;
+//        System.out.println("Opponent KINGS  "+  opponents_curent_kings);
+        // defensive spots
+        int get_defensive_score = getDefensivePositions() * 25;
+//        System.out.println("back row "+  get_defensive_score);
+        int get_back_row_score = getBackRowPieces() * 75;
+//        System.out.println("back row "+  get_back_row_score);
+//        System.out.println("total score: " + (players_piece_difference + current_kings + opponents_curent_kings + get_defensive_score + get_back_row_score ));
+        return (players_piece_difference + current_kings + opponents_curent_kings + get_defensive_score + get_back_row_score);
     }
 
     private int minimax(int depth, Piece_player player_turn, int alpha, int beta){
@@ -99,7 +121,7 @@ public class OpponentAI {
                     int eval = minimax(depth - 1, opposingPlayer, alpha, beta);
                     undoMove(moves.get(i));
                     max_eval = Math.max(eval, max_eval);
-                    alpha = Math.max( alpha, max_eval);
+                    alpha = Math.max( alpha, eval);
                     if (beta <= alpha) {
                         break;
                     }
@@ -116,7 +138,7 @@ public class OpponentAI {
                     int eval = minimax(depth - 1, player, alpha, beta);
                     undoMove(moves.get(i));
                     min_eval = Math.min(eval, min_eval);
-                    beta = Math.min( alpha, min_eval);
+                    beta = Math.min( beta, eval);
                     if (beta <= alpha) {
                         break;
                     }

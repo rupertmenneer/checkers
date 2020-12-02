@@ -166,12 +166,10 @@ public class Checkers extends Application {
         board[m.getOldX()][m.getOldY()].setPiece(null);
         // update new board ref
         board[new_x][new_y].setPiece(p);
-        // animate piece
-        m.printMove();
-        //
         if(!p.isKing()) {
             p.setKing(m.capturesKing());
         }
+        // animate piece
         p.animatePiece(this, new_x, new_y);
 
     }
@@ -247,7 +245,7 @@ public class Checkers extends Application {
 
     private void displayMoveHint() {
         checkForceCapture(Piece_player.Human);
-        OpponentAI hintFromAI = new OpponentAI(board, difficulty, Piece_player.Human);
+        OpponentAI hintFromAI = new OpponentAI(board, 7, Piece_player.Human);
         Move hint = hintFromAI.getBestMove();
         Rectangle move = new Rectangle(Checkers.tile_size, Checkers.tile_size);
         Rectangle piece = new Rectangle(Checkers.tile_size, Checkers.tile_size);

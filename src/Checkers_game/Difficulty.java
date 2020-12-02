@@ -2,7 +2,7 @@ package Checkers_game;
 
 public enum Difficulty {
 
-    Easy(2), Normal(6), Hard(11);
+    Easy(1), Normal(3), Hard(7);
 
     final int difficulty;
 
