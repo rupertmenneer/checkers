@@ -1,12 +1,11 @@
 package Checkers_game;
 
 import java.util.ArrayList;
-import java.util.Collections;
 
 public class MoveManager {
 
-    private Tile[][] board;
-    private Piece p;
+    private final Tile[][] board;
+    private final Piece p;
     private ArrayList<Move> valid_moves;
 
     public MoveManager(Tile[][] board, Piece p){
@@ -15,6 +14,7 @@ public class MoveManager {
         this.valid_moves = new ArrayList<>();
     }
 
+    // this method finds all valid moves for it's given piece
     private ArrayList<Move> findValidMoves(int x, int y, Move prevMove){
         ArrayList<Move> move_list = new ArrayList<>();
         // assign direction
@@ -58,6 +58,7 @@ public class MoveManager {
         return move_list;
     }
 
+    // this handles capture moves and recalls find valid moves if more captures can be taken
     private ArrayList<Move> handleCaptureMoves(int x, int y, int side_d, int d, Move prevMove){
         // set force capture to true - this means that only capture moves are allowed to be played
         ArrayList<Move> move_list = new ArrayList<>();
@@ -88,6 +89,7 @@ public class MoveManager {
         return move_list;
     }
 
+    // just to check a piece can't be taken twice
     private boolean alreadyTaken(Piece p, Move m){
         for (Piece taken : m.getPiecesTaken()){
             if(p == taken){
@@ -97,6 +99,7 @@ public class MoveManager {
         return false;
     }
 
+    // clear valid moves everytime this is called - just to keep most up to date move information
     public ArrayList<Move> getValidMoves() {
         this.valid_moves.clear();
         this.valid_moves = findValidMoves(p.getBoardX(), p.getBoardY(), null);
@@ -107,6 +110,7 @@ public class MoveManager {
         return x >= 0 && x <= 7 && y >= 0 && y <= 7;
     }
 
+    // check if a capture is valid
     private boolean captureCheck(int x, int y, int side_dir, int piece_dir){
         // horizontal check
         if (!withinBoundary(x+(2*side_dir), y+(2*piece_dir))){

@@ -17,7 +17,7 @@ import java.util.List;
 
 public class RulesDisplay {
 
-    private static List<String> list = new ArrayList<>();
+    private static final List<String> list = new ArrayList<>();
     static int img_index = 0;
 
     public static void displayRules(String title){
@@ -46,7 +46,7 @@ public class RulesDisplay {
             rbutton.setScaleX(2);
             rbutton.setScaleY(2);
 
-            Image images[] = new Image[list.size()];
+            Image[] images = new Image[list.size()];
             for (int i = 0; i < list.size(); i++) {
                 File img_path = new File(list.get(i));
                 images[i] = new Image(img_path.toURI().toString());

@@ -20,18 +20,24 @@ import java.util.ArrayList;
 
 public class Checkers extends Application {
 
+    // set default values
     public final static int tile_size = 72;
     public final static int grid_size = 8;
     public static Piece_player turn = Piece_player.Human;
     public static boolean forceCapture = false;
-    private int difficulty = Difficulty.Normal.difficulty;
+    private int difficulty = Difficulty.Hard.difficulty;
 
+    // set up display groups
     private final Group tiles = new Group();
     private final Group pieces = new Group();
     private final Group display_available_moves = new Group();
     private final Group display_hint = new Group();
+
+    // create board
     private final Tile[][] board = new Tile[grid_size][grid_size];
 
+    // this method fills a 2D array with Tile objects and also places the pieces onto the board
+    // it adds these to the tiles and peices group which are added to a Pane for the GUI
     private Pane generateBoard(){
         Pane root = new Pane();
         root.setPrefSize(grid_size*tile_size, grid_size*tile_size);
@@ -69,6 +75,8 @@ public class Checkers extends Application {
     }
 
 
+    // this creates each piece on the board and sets up some functionality for it to be
+    // handled which couldn't be added to the Piece class.
     private Piece generatePiece(Piece_player player, int x, int y){
         Piece p = new Piece(player, x, y, board);
 
@@ -101,6 +109,7 @@ public class Checkers extends Application {
         return p;
     }
 
+    // simple check if there is a capture move on the board for the respetive player
     private void checkForceCapture(Piece_player player){
         ArrayList<Move> all_available_moves = getPlayersAvailableMoves(player);
         for (Move move : all_available_moves){
@@ -111,6 +120,7 @@ public class Checkers extends Application {
         }
     }
 
+    // for every piece on the board, summate all moves
     private ArrayList<Move> getPlayersAvailableMoves(Piece_player player) {
         ArrayList<Piece> pieces = new ArrayList<>();
         for (Tile[] value : board) {
@@ -127,6 +137,7 @@ public class Checkers extends Application {
         return all_moves;
     }
 
+    // display valid moves on board in transparent green
     private void showValidMoves(Piece p){
         ArrayList<Move> available_moves = p.getMoveManager().getValidMoves();
         for (Move available_move : available_moves) {
@@ -141,7 +152,7 @@ public class Checkers extends Application {
         }
     }
 
-
+    // handle makings on the board
     private void makeMove(Move m){
         // get piece and new x and y co-ords
         Piece p = m.getPiece();
@@ -165,6 +176,7 @@ public class Checkers extends Application {
 
     }
 
+    // change turn / if ai's turn initiate their move! Also check for game over
     public void changeTurn(){
         forceCapture = false;
         if(gameOver()){
@@ -188,6 +200,7 @@ public class Checkers extends Application {
         launch(args);
     }
 
+    // top menu bar
     public MenuBar generateMenu(Stage p){
         // GAME MENU
         final Menu menuGame = new Menu("Game");
@@ -230,6 +243,7 @@ public class Checkers extends Application {
         return menuBar;
     }
 
+    // display move hint - blue tiles on both origin and destination tiles
     private void displayMoveHint() {
         checkForceCapture(Piece_player.Human);
         OpponentAI hintFromAI = new OpponentAI(board, 7, Piece_player.Human);
@@ -252,6 +266,7 @@ public class Checkers extends Application {
 
     }
 
+    // this handles the AI turn
     private void Play(){
         if (turn == Piece_player.AI && !gameOver()){
             checkForceCapture(Piece_player.AI);
@@ -260,10 +275,12 @@ public class Checkers extends Application {
         }
     }
 
+    // game over check
     private boolean gameOver(){
         return getPlayersAvailableMoves(Piece_player.AI).size() == 0 | getPlayersAvailableMoves(Piece_player.Human).size() == 0;
     }
 
+    // set up the stage, scene, menu, board and game music.
     @Override
     public void start(Stage primaryStage) {
 

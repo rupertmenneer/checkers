@@ -3,14 +3,14 @@ package Checkers_game;
 import java.util.ArrayList;
 
 public class Move {
-    private int x;
-    private int y;
-    private int old_x;
-    private int old_y;
-    private ArrayList<Piece> piecesTaken;
-    private Piece piece;
+    private final int x;
+    private final int y;
+    private final int old_x;
+    private final int old_y;
+    private final ArrayList<Piece> piecesTaken;
+    private final Piece piece;
     private boolean capturesKing;
-    private boolean alreadyKing;
+    private final boolean alreadyKing;
 
     public Move(Piece piece, int x, int y, int old_x, int old_y){
         this.piece = piece;
@@ -62,11 +62,4 @@ public class Move {
     public Piece getPiece() {
         return piece;
     }
-
-    public void printMove(){
-        for (Piece taken : piecesTaken){
-            System.out.println("Piece taken from: " + taken.getBoardX() + " " + taken.getBoardY() + " is taken a king? " + this.capturesKing);
-        }
-    }
-
 }

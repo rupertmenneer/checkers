@@ -1,32 +1,27 @@
 package Checkers_game;
 
 import javafx.animation.FadeTransition;
-import javafx.animation.PathTransition;
 import javafx.animation.TranslateTransition;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.image.Image;
 import javafx.scene.layout.StackPane;
 import javafx.scene.media.AudioClip;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.CubicCurve;
-import javafx.scene.shape.QuadCurve;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
-import javafx.scene.text.Text;
 
 import java.io.File;
-import java.util.ArrayList;
 
 public class Piece extends StackPane {
 
         private int board_x, board_y;
 
-        private Piece_player player;
-        private MoveManager moveManager;
-        private double scale = 0.366;
+        private final Piece_player player;
+        private final MoveManager moveManager;
+        private final double scale = 0.366;
         private boolean king;
         private static final File skull_path = new File("Checkers_images/skull.png");
 
@@ -167,9 +162,7 @@ public class Piece extends StackPane {
             FadeTransition ft = new FadeTransition(Duration.millis(2000), s);
             ft.setFromValue(1.0);
             ft.setToValue(0.0);
-            ft.setOnFinished(e -> {
-                group.getChildren().remove(s);
-            });
+            ft.setOnFinished(e -> group.getChildren().remove(s));
             ft.play();
         }
 

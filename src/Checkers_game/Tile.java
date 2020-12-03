@@ -1,9 +1,8 @@
 package Checkers_game;
-import javafx.scene.paint.Color;
-import javafx.scene.shape.Rectangle;
+
 import javafx.scene.image.Image;
 import javafx.scene.paint.ImagePattern;
-import javafx.scene.text.Text;
+import javafx.scene.shape.Rectangle;
 
 import java.io.File;
 

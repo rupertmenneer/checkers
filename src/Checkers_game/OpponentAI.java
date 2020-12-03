@@ -4,14 +4,15 @@ import java.util.Random;
 
 public class OpponentAI {
 
-    private Tile[][] board;
-    private int depth;
-    private Move best_move;
+    private final Tile[][] board;
+    private final int depth;
+    private final Move best_move;
+    // for testing
     private int static_evals;
 
     // player variables
-    private Piece_player player;
-    private Piece_player opposingPlayer;
+    private final Piece_player player;
+    private final Piece_player opposingPlayer;
 
     public OpponentAI(Tile[][] board, int depth, Piece_player player) {
         this.board = board;
@@ -26,7 +27,7 @@ public class OpponentAI {
         this.best_move = bestMove();
     }
 
-
+    // find all available moves - assign score to each and return move with best score
     private Move bestMove(){
         ArrayList<Move> moves = getPlayersAvailableMoves(player);
         // initalise move as random for easy difficulty
@@ -35,18 +36,17 @@ public class OpponentAI {
         Move m = moves.get(random);
         // if difficulty is easy then just take first available move
         if (depth>Difficulty.Easy.difficulty) {
-            System.out.println("true");
             int best_score = Integer.MIN_VALUE;
-            for (int i = 0; i < moves.size(); i++) {
-                makeMove(moves.get(i));
+            for (Move move : moves) {
+                makeMove(move);
                 int min_max = minimax(depth - 1, opposingPlayer, Integer.MIN_VALUE, Integer.MAX_VALUE);
                 if (min_max > best_score) {
                     best_score = min_max;
-                    m = moves.get(i);
+                    m = move;
                     System.out.println(best_score);
                 }
 
-                undoMove(moves.get(i));
+                undoMove(move);
             }
         }
         return m;
@@ -56,6 +56,7 @@ public class OpponentAI {
         return best_move;
     }
 
+    // look for positions on the board where piecs can't be taken
     private int getDefensivePositions(){
         int defensive_positions = 0;
         for (int i = 0; i < board.length; i++) {
@@ -79,6 +80,7 @@ public class OpponentAI {
         return defensive_positions;
     }
 
+    // get back row pieces for each player
     private int getBackRowPieces(){
         int backRow = 0;
         for (int y = 0; y < board.length; y++) {
@@ -96,7 +98,8 @@ public class OpponentAI {
         return x >= 0 && x <= 7 && y >= 0 && y <= 7;
     }
 
-    private int getScore(Tile[][] b){
+    // get score from heuristics
+    private int getScore(){
         int score = 0;
         // -200 points for losing piece
         score += (getNumberOfPlayerPieces(player, false) - getNumberOfPlayerPieces(opposingPlayer, false))*200;
@@ -116,47 +119,49 @@ public class OpponentAI {
     private int minimax(int depth, Piece_player player_turn, int alpha, int beta){
         if (depth == 0 | gameOver(player_turn)){
             static_evals++;
-            return getScore(board);
+            return getScore();
         } else {
+            int max_eval;
+            ArrayList<Move> moves;
             if (player_turn == player){
                 // set initial val
-                int max_eval = Integer.MIN_VALUE;
+                max_eval = Integer.MIN_VALUE;
                 // get all available moves
-                ArrayList<Move> moves = getPlayersAvailableMoves(player);
-                for (int i = 0; i < moves.size(); i++) {
-                    makeMove(moves.get(i));
+                moves = getPlayersAvailableMoves(player);
+                for (Move move : moves) {
+                    makeMove(move);
                     int eval = minimax(depth - 1, opposingPlayer, alpha, beta);
-                    undoMove(moves.get(i));
+                    undoMove(move);
                     max_eval = Math.max(eval, max_eval);
-                    alpha = Math.max( alpha, eval);
+                    alpha = Math.max(alpha, eval);
                     if (beta <= alpha) {
                         break;
                     }
                 }
-                return max_eval;
             }
             else {
                 // set initial val
-                int min_eval = Integer.MAX_VALUE;
+                max_eval = Integer.MAX_VALUE;
                 // get all available moves
-                ArrayList<Move> moves = getPlayersAvailableMoves(opposingPlayer);
-                for (int i = 0; i < moves.size(); i++) {
-                    makeMove(moves.get(i));
+                moves = getPlayersAvailableMoves(opposingPlayer);
+                for (Move move : moves) {
+                    makeMove(move);
                     int eval = minimax(depth - 1, player, alpha, beta);
-                    undoMove(moves.get(i));
-                    min_eval = Math.min(eval, min_eval);
-                    beta = Math.min( beta, eval);
+                    undoMove(move);
+                    max_eval = Math.min(eval, max_eval);
+                    beta = Math.min(beta, eval);
                     if (beta <= alpha) {
                         break;
                     }
                 }
-                return min_eval;
             }
+            return max_eval;
         }
     }
 
 
     // this method checks whether the game is over e.g. no available moves when it's the players turn
+    // this is used in the minimax method
     private boolean gameOver(Piece_player p) {
         ArrayList<Move> moves;
         if (p == player){
@@ -170,9 +175,9 @@ public class OpponentAI {
     // this method returns the number of standard or king pieces for a given player
     private int getNumberOfPlayerPieces(Piece_player player, boolean king) {
         int pieces = 0;
-        for (int i = 0; i < board.length; i++) {
+        for (Tile[] tiles : board) {
             for (int j = 0; j < board.length; j++) {
-                if (board[i][j].has_piece() && board[i][j].getPiece().getPlayer() == player && board[i][j].getPiece().isKing() == king) {
+                if (tiles[j].has_piece() && tiles[j].getPiece().getPlayer() == player && tiles[j].getPiece().isKing() == king) {
                     pieces++;
                 }
             }
@@ -184,16 +189,16 @@ public class OpponentAI {
     // finds all valid moves for all of the players pieces
     private ArrayList<Move> getPlayersAvailableMoves(Piece_player player) {
         ArrayList<Piece> pieces = new ArrayList<>();
-        for (int i = 0; i < board.length; i++) {
+        for (Tile[] tiles : board) {
             for (int j = 0; j < board.length; j++) {
-                if (board[i][j].has_piece() && board[i][j].getPiece().getPlayer() == player) {
-                    pieces.add(board[i][j].getPiece());
+                if (tiles[j].has_piece() && tiles[j].getPiece().getPlayer() == player) {
+                    pieces.add(tiles[j].getPiece());
                 }
             }
         }
         ArrayList<Move> all_moves = new ArrayList<>();
-        for(int i = 0; i < pieces.size(); i++){
-            all_moves.addAll(pieces.get(i).getMoveManager().getValidMoves());
+        for (Piece piece : pieces) {
+            all_moves.addAll(piece.getMoveManager().getValidMoves());
         }
         return all_moves;
     }
