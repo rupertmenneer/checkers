@@ -1,6 +1,7 @@
 package Checkers_game;
 
 import javafx.animation.FadeTransition;
+import javafx.animation.PathTransition;
 import javafx.animation.TranslateTransition;
 import javafx.scene.Cursor;
 import javafx.scene.Group;
@@ -10,6 +11,8 @@ import javafx.scene.media.AudioClip;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.shape.Circle;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.CubicCurve;
+import javafx.scene.shape.QuadCurve;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 import javafx.scene.text.Text;
@@ -87,7 +90,24 @@ public class Piece extends StackPane {
             this.setLayoutY(y * Checkers.tile_size);
         }
 
-        public void animatePiece(Checkers game, int new_x, int new_y){
+        private int animatePiece = 0;
+        private boolean animationFinished = false;
+
+        public void animatePiece(Checkers game, Move m){
+            int new_x;
+            int new_y;
+            if(m.getPiecesTaken().size()>0 && m.getPiecesTaken().size()>animatePiece){
+                new_x = m.getPiecesTaken().get(animatePiece).getBoardX();
+                new_y = m.getPiecesTaken().get(animatePiece).getBoardY();
+                animatePiece++;
+            } else{
+                animatePiece = 0;
+                animationFinished = true;
+                new_x = m.getX();
+                new_y = m.getY();
+            }
+
+
 
             // move piece to new valid move with animation and 0.5 sec delay
             TranslateTransition transition = new TranslateTransition();
@@ -103,11 +123,7 @@ public class Piece extends StackPane {
             checkIfKinged(new_y);
             // don't change turn until animation is finished
             transition.setOnFinished(e -> {
-                // set up audio clip
-                String move_audio = new File("move_piece_sound.wav").toURI().toString();
-                AudioClip audioClip = new AudioClip(move_audio);
-                audioClip.setVolume(0.5);
-                audioClip.play();
+
                 // position piece in exact position
                 this.setLayoutX(new_x * Checkers.tile_size);
                 this.setLayoutY(new_y * Checkers.tile_size);
@@ -117,7 +133,22 @@ public class Piece extends StackPane {
                 // update pieces board position reference
                 board_x = new_x;
                 board_y = new_y;
-                game.changeTurn();
+                if(!animationFinished){
+                    String move_audio = new File("death.wav").toURI().toString();
+                    AudioClip audioClip = new AudioClip(move_audio);
+                    audioClip.setVolume(0.5);
+                    audioClip.play();
+                    animatePiece(game, m);
+                }
+                else {
+                    // set up audio clip
+                    String move_audio = new File("move_piece_sound.wav").toURI().toString();
+                    AudioClip audioClip = new AudioClip(move_audio);
+                    audioClip.setVolume(0.5);
+                    audioClip.play();
+                    animationFinished = false;
+                    game.changeTurn();
+                }
             });
 
             // play animation

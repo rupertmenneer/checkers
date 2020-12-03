@@ -1,5 +1,7 @@
 package Checkers_game;
 import java.util.ArrayList;
+import java.util.Random;
+
 public class OpponentAI {
 
     private Tile[][] board;
@@ -27,18 +29,25 @@ public class OpponentAI {
 
     private Move bestMove(){
         ArrayList<Move> moves = getPlayersAvailableMoves(player);
-        // initalise move
-        Move m = moves.get(0);
-        int best_score = Integer.MIN_VALUE;
-        for (int i = 0; i < moves.size(); i++) {
-            makeMove(moves.get(i));
-            int min_max = minimax(depth - 1, opposingPlayer, Integer.MIN_VALUE, Integer.MAX_VALUE);
-            if (min_max > best_score) {
-                best_score = min_max;
-                m = moves.get(i);
-//                System.out.println(best_score);
+        // initalise move as random for easy difficulty
+        Random r = new Random();
+        int random = r.nextInt(moves.size());
+        Move m = moves.get(random);
+        // if difficulty is easy then just take first available move
+        if (depth>Difficulty.Easy.difficulty) {
+            System.out.println("true");
+            int best_score = Integer.MIN_VALUE;
+            for (int i = 0; i < moves.size(); i++) {
+                makeMove(moves.get(i));
+                int min_max = minimax(depth - 1, opposingPlayer, Integer.MIN_VALUE, Integer.MAX_VALUE);
+                if (min_max > best_score) {
+                    best_score = min_max;
+                    m = moves.get(i);
+                    System.out.println(best_score);
+                }
+
+                undoMove(moves.get(i));
             }
-            undoMove(moves.get(i));
         }
         return m;
     }
@@ -88,22 +97,20 @@ public class OpponentAI {
     }
 
     private int getScore(Tile[][] b){
-        // -100 points for losing piece
-        int players_piece_difference = (getNumberOfPlayerPieces(player, false) - getNumberOfPlayerPieces(opposingPlayer, false))*200;
-//        System.out.println("Piece difference  "+  players_piece_difference);
-        // 200 points for gaining a king (-200 for losing)
-        int current_kings = getNumberOfPlayerPieces(player, true)*300;
-//        System.out.println("Friendly KINGS  "+  current_kings);
-        // -200 letting opponent king / +200 for taking their king
-        int opponents_curent_kings = -getNumberOfPlayerPieces(opposingPlayer, true)*500;
-//        System.out.println("Opponent KINGS  "+  opponents_curent_kings);
-        // defensive spots
-        int get_defensive_score = getDefensivePositions() * 25;
-//        System.out.println("back row "+  get_defensive_score);
-        int get_back_row_score = getBackRowPieces() * 75;
-//        System.out.println("back row "+  get_back_row_score);
-//        System.out.println("total score: " + (players_piece_difference + current_kings + opponents_curent_kings + get_defensive_score + get_back_row_score ));
-        return (players_piece_difference + current_kings + opponents_curent_kings + get_defensive_score + get_back_row_score);
+        int score = 0;
+        // -200 points for losing piece
+        score += (getNumberOfPlayerPieces(player, false) - getNumberOfPlayerPieces(opposingPlayer, false))*200;
+        if(depth>Difficulty.Normal.difficulty) {
+            // 300 points for gaining a king (-300 for losing)
+            score += getNumberOfPlayerPieces(player, true) * 300;
+            // -500 letting opponent king / +500 for taking their king
+            score += getNumberOfPlayerPieces(opposingPlayer, true) * -500;
+            // 25 for defensive spots
+            score += getDefensivePositions() * 25;
+            // 75 for keeping back row pieces (blocks kinging)
+            score += getBackRowPieces() * 75;
+        }
+        return score;
     }
 
     private int minimax(int depth, Piece_player player_turn, int alpha, int beta){
